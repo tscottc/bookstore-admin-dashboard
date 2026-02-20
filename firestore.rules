@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function isApproved() {
+      return isAuthed() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.approved == true;
+    }
+
+    function isAdmin() {
+      return isAuthed() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Users — any logged-in user can read profiles (needed for Colophon author names).
+    // Users can create their own doc. Users can edit their own doc; admins can edit any.
+    match /users/{userId} {
+      allow read: if isAuthed();
+      allow create: if isAuthed() && request.auth.uid == userId;
+      allow update: if isAuthed() && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Colophon — approved users can read and post.
+    // Only the author or an admin can edit/delete a post.
+    match /colophonPosts/{postId} {
+      allow read: if isApproved();
+      allow create: if isApproved();
+      allow update: if isApproved() && (request.auth.uid == resource.data.authorId || isAdmin());
+      allow delete: if isApproved() && (request.auth.uid == resource.data.authorId || isAdmin());
+    }
+
+    // Shifts — approved users can read and post shifts.
+    // Only the poster or an admin can delete a shift.
+    match /shifts/{shiftId} {
+      allow read: if isApproved();
+      allow create: if isApproved();
+      allow update: if isApproved();
+      allow delete: if isApproved() && (request.auth.uid == resource.data.posterId || isAdmin());
+    }
+  }
+}

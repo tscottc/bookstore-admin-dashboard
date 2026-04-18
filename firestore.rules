@@ -21,7 +21,11 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isAuthed();
       allow create: if isAuthed() && request.auth.uid == userId;
-      allow update: if isAuthed() && (request.auth.uid == userId || isAdmin());
+      allow update: if isAuthed() && (
+        (request.auth.uid == userId &&
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'approved']))
+        || isAdmin()
+      );
       allow delete: if isAdmin();
     }
 
@@ -39,7 +43,7 @@ service cloud.firestore {
     match /shifts/{shiftId} {
       allow read: if isApproved();
       allow create: if isApproved();
-      allow update: if isApproved();
+      allow update: if isApproved() && (request.auth.uid == resource.data.posterId || isAdmin());
       allow delete: if isApproved() && (request.auth.uid == resource.data.posterId || isAdmin());
     }
   }

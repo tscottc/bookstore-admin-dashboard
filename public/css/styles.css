@@ -648,6 +648,95 @@ label.field-label {
   font-size: 0.825rem;
 }
 
+/* Shift posting — option buttons (preset times, type) */
+.shift-opts-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.shift-opt-btn {
+  padding: 0.5rem 1rem;
+  border: 1.5px solid var(--content-border);
+  border-radius: 4px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms, color 120ms;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.shift-opt-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.shift-opt-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Shift posting — day selector */
+.shift-day-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.day-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid var(--content-border);
+  border-radius: 5px;
+  background: #fff;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+  min-width: 60px;
+  gap: 0.15rem;
+}
+
+.day-btn .day-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.day-btn .day-date {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.day-btn:hover {
+  border-color: var(--accent);
+}
+
+.day-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.day-btn.selected .day-name,
+.day-btn.selected .day-date {
+  color: #fff;
+}
+
+/* Shift type badges */
+.badge-takeover { background: #fef3c7; color: #92400e; }
+.badge-swap     { background: #dbeafe; color: #1e40af; }
+.badge-either   { background: #f3e8ff; color: #6b21a8; }
+
 /* Approvals */
 .approval-card {
   display: flex;

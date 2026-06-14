@@ -46,5 +46,12 @@ service cloud.firestore {
       allow update: if isApproved() && (request.auth.uid == resource.data.posterId || isAdmin());
       allow delete: if isApproved() && (request.auth.uid == resource.data.posterId || isAdmin());
     }
+
+    // Hour entries — fully private, only the owning employee can read/write their own.
+    match /hourEntries/{entryId} {
+      allow read: if isApproved() && request.auth.uid == resource.data.uid;
+      allow create: if isApproved() && request.auth.uid == request.resource.data.uid;
+      allow delete: if isApproved() && request.auth.uid == resource.data.uid;
+    }
   }
 }

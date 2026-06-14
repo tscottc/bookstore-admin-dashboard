@@ -1,6 +1,6 @@
-# Midwest Attic Admin Portal
+# John K. King Books — Staff Hub
 
-An internal employee portal for Midwest Attic — a bookstore/retail operation. Built with vanilla HTML/CSS/JavaScript and Firebase, it gives staff a place to coordinate shifts, communicate as a team, and lets admins manage employee access.
+Internal employee portal for John K. King Used & Rare Books. Built with vanilla HTML/CSS/JavaScript and Firebase, it gives staff a place to coordinate shifts, communicate as a team, and track hours. Admins manage employee access and approvals.
 
 ---
 
@@ -8,9 +8,11 @@ An internal employee portal for Midwest Attic — a bookstore/retail operation. 
 
 - **Shift Marketplace** — Post shifts you can't work; coworkers can claim them in real time
 - **The Colophon** — Internal team discussion board with threaded replies and edit/delete support
+- **Hour Tracker** — Log hours and calculate pay based on your hourly rate
+- **Staff Roster** — View team contact info for opted-in employees
 - **User Approvals** (admin only) — Approve or deny new employee account requests
-- **Profile Settings** — Update your display name
-- **Book Scanner** — External link to the companion book scanning app
+- **Profile Settings** — Update your display name and roster preferences
+- **Resources** — Links to companion tools including Book Junior (book scanner), the public directory, and external references
 
 ---
 
@@ -19,13 +21,12 @@ An internal employee portal for Midwest Attic — a bookstore/retail operation. 
 | Layer | Technology |
 |---|---|
 | Frontend | HTML5 / CSS / Vanilla JavaScript (ES modules) |
-| Styling | Tailwind CSS v4 (CDN) |
-| Auth | Firebase Authentication (email/password) |
+| Auth | Firebase Authentication (Google sign-in) |
 | Database | Cloud Firestore (real-time) |
 | Backend | Firebase Cloud Functions (Node.js 20) |
 | Hosting | Firebase Hosting |
 
-No build step. No framework. The entire frontend lives in `public/index.html` and is served directly.
+No build step. No framework. The entire frontend is served directly from `public/`.
 
 ---
 
@@ -34,14 +35,29 @@ No build step. No framework. The entire frontend lives in `public/index.html` an
 ```
 bookstore-admin-dashboard/
 ├── public/
-│   └── index.html          # Entire frontend SPA
+│   ├── index.html                  # App shell and auth overlay
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       ├── app.js                  # Auth state, routing, page mounting
+│       ├── firebase.js             # Firebase init and all DB/auth helpers
+│       ├── components/
+│       │   ├── auth.js             # Google sign-in UI
+│       │   └── nav.js              # Sidebar navigation
+│       └── pages/
+│           ├── home.js
+│           ├── shifts.js
+│           ├── hours.js
+│           ├── resources.js
+│           ├── roster.js
+│           ├── profile.js
+│           └── approvals.js
 ├── functions/
-│   ├── index.js            # Cloud Functions (user creation trigger)
+│   ├── index.js                    # Cloud Functions
 │   └── package.json
-├── firestore.rules         # Firestore security rules
-├── firebase.json           # Firebase Hosting config
-├── .firebaserc             # Firebase project targets
-└── .env.example            # Environment variable template
+├── firestore.rules                 # Firestore security rules
+├── firebase.json                   # Firebase Hosting config
+└── .firebaserc                     # Firebase project targets
 ```
 
 ---
@@ -65,12 +81,12 @@ cd bookstore-admin-dashboard
 
 ```bash
 firebase login
-firebase use --add   # select or create your project
+firebase use --add
 ```
 
 ### 3. Configure Firebase credentials
 
-The Firebase config is embedded in `public/index.html` (lines ~248–256). Replace the placeholder values with your project's config from the Firebase console:
+The Firebase config is in `public/js/firebase.js`. Replace the values with your project's config from the Firebase console:
 
 ```js
 const firebaseConfig = {
@@ -83,49 +99,33 @@ const firebaseConfig = {
 };
 ```
 
-You can find these values in **Firebase Console → Project Settings → Your apps**.
+### 4. Enable Google sign-in in Firebase Console
 
-### 4. Deploy Firestore rules
+Go to **Authentication → Sign-in method → Google** and enable it. Under **Authorized domains**, add your hosting domain (e.g. `admin.johnkingbooksdetroit.com`).
+
+### 5. Deploy
 
 ```bash
+# Firestore rules only
 firebase deploy --only firestore:rules
-```
 
-### 5. Deploy Cloud Functions
-
-```bash
-cd functions
-npm install
-cd ..
+# Cloud Functions only
+cd functions && npm install && cd ..
 firebase deploy --only functions
-```
 
-### 6. Deploy the frontend
-
-```bash
+# Frontend only
 firebase deploy --only hosting
-```
 
-Or deploy everything at once:
-
-```bash
+# Everything at once
 firebase deploy
 ```
 
 ### Local development
 
-Serve the `public/` folder with any static HTTP server:
-
 ```bash
 npx serve public
 # or
 python3 -m http.server 8080 --directory public
-```
-
-For local Cloud Functions testing:
-
-```bash
-firebase emulators:start --only functions
 ```
 
 ---
@@ -134,22 +134,24 @@ firebase emulators:start --only functions
 
 ### Authentication & Access Control
 
-1. New users sign up with email and password.
-2. Firebase triggers the `createNewUser` Cloud Function, which creates a Firestore document with `approved: false` and `role: 'employee'`.
-3. An admin must approve the account from the **User Approvals** page before the user can access the portal.
-4. Denied users see an "access denied" message and cannot log in.
+1. A new user clicks **Sign in with Google** and authenticates via their Google account.
+2. If no Firestore document exists for that UID, one is created with `approved: false` and the user sees a "pending approval" screen.
+3. An admin approves the account from the **User Approvals** page.
+4. On next sign-in, the approved user gains full access. Denied users see an "access denied" message.
 
 Roles: `employee` (default) or `admin`. Admins can approve/deny users and moderate all posts and shifts.
 
 ### Routing
 
-Single-page app with hash-based routing. Pages:
+Single-page app with hash-based routing.
 
 | Hash | Page | Access |
 |---|---|---|
-| `#/` | Login / Auth modal | Public |
-| `#/colophon` | Team discussion board | Approved users |
+| `#/home` | Home / Colophon feed | Approved users |
 | `#/shifts` | Shift Marketplace | Approved users |
+| `#/hours` | Hour Tracker | Approved users |
+| `#/resources` | Tools & links | Approved users |
+| `#/roster` | Staff Roster | Approved users |
 | `#/profile` | Profile settings | Approved users |
 | `#/approvals` | User approvals | Admins only |
 
@@ -169,7 +171,9 @@ displayName   string
 role          'employee' | 'admin'
 approved      boolean
 denied        boolean
-createdAt     timestamp
+rosterOptIn   boolean
+hourlyRate    number
+timestamp     timestamp
 ```
 
 ### `colophonPosts`
@@ -194,13 +198,23 @@ claimerName   string | null
 timestamp     timestamp
 ```
 
+### `hourEntries`
+```
+uid           string
+date          string     YYYY-MM-DD
+hours         number
+note          string
+timestamp     timestamp
+```
+
 ---
 
 ## Firestore Security Rules
 
-- **Users:** Any authenticated user can read all profiles. Users can update their own doc but cannot change their `role` or `approved` fields. Admins can update any user doc. Only admins can delete users.
+- **Users:** Any authenticated user can read all profiles. Users can update their own doc but cannot change their `role` or `approved` fields. Admins can update any user doc.
 - **Colophon Posts:** Approved users can read and create. Authors or admins can edit/delete.
 - **Shifts:** Approved users can read and create. Only the poster or an admin can update or delete a shift.
+- **Hour Entries:** Users can only read and write their own entries. Admins can read all.
 
 ---
 
@@ -209,10 +223,9 @@ timestamp     timestamp
 Defined in `firebase.json` and `.firebaserc`:
 
 - **Firebase Project ID:** `store-directory-3`
-- **Hosting Target:** `admin-dashboard-3`
+- **Hosting Target:** `admin`
+- **Live URL:** `admin.johnkingbooksdetroit.com`
 - **Public Directory:** `public/`
-
-To deploy to a different project, update `.firebaserc` and the Firebase config in `public/index.html`.
 
 ---
 
@@ -224,14 +237,13 @@ From the `functions/` directory:
 npm run serve    # Start local emulator
 npm run deploy   # Deploy functions to Firebase
 npm run logs     # Stream live function logs
-npm run shell    # Open interactive Functions shell
 ```
 
 ---
 
 ## Notes
 
-- Firebase SDK (v10.8.0) and Tailwind CSS (v4) are loaded from CDN — no `npm install` needed for the frontend.
-- The companion Book Scanner app lives at `book-scanner-jkk.web.app`.
+- Firebase SDK (v10.8.0) is loaded from CDN — no `npm install` needed for the frontend.
+- Authentication uses Google sign-in only. First-time sign-ins are held for admin approval before access is granted.
+- The companion Book Scanner app (Book Junior) lives at `book-scanner-jkk.web.app` and is linked from the Resources page.
 - There is no offline support or service worker configured.
-- Avatar images use initials-based colored circles (no image uploads).

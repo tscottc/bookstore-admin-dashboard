@@ -214,7 +214,7 @@ timestamp     timestamp
 - **Users:** Any authenticated user can read all profiles. Users can update their own doc but cannot change their `role` or `approved` fields. Admins can update any user doc.
 - **Colophon Posts:** Approved users can read and create. Authors or admins can edit/delete.
 - **Shifts:** Approved users can read and create. Only the poster or an admin can update or delete a shift.
-- **Hour Entries:** Users can only read and write their own entries. Admins can read all.
+- **Hour Entries:** Fully private — users can only read, create, and delete their own entries. Admins have no access.
 
 ---
 
